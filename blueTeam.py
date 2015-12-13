@@ -121,4 +121,6 @@ class HunterDefenseAgent(ApproximateAdversarialAgent):
       else:
         score -= self.distancer.getDistance(myPosition, gameState.getAgentState(opponent).getPosition())
 
+    return score
+
 
