@@ -145,7 +145,7 @@ class ApproximateAdversarialAgent(CaptureAgent):
       return bestVal
 
   def agentIsPacman(self, agent, gameState):
-    return (gameState.isRed(self.guessPosition(oppIndex)) != gameState.isOnRedTeam(oppIndex))
+    return (gameState.isRed(self.guessPosition(agent)) != gameState.isOnRedTeam(agent))
 
   def evaluateState(self, gameState):
     """
