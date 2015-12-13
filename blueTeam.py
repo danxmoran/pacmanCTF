@@ -100,11 +100,11 @@ class HunterDefenseAgent(ApproximateAdversarialAgent):
       newPosition = newState.getAgentState(self.index).getPosition()
 
       if self.opponentInTerritory(self, gameState, closestOpponent):
-        if self.distancer.getDistance(newPosition, closestOpponentPos) < dist:
+        if self.distancer.getDistance(newPosition, closestOpponentPos) <= dist:
           dist = self.distancer.getDistance(newPosition, closestOpponentPos)
           act = action
       else:
-        if self.distancer.getDistance(newPosition, closestOpponentPos) < dist and abs(newPosition[0] - gameState.getInitialAgentPosition(self.index)[0]) < abs(newPosition[0] - gameState.getInitialAgentPosition(closestOpponent)[0]):
+        if self.distancer.getDistance(newPosition, closestOpponentPos) <= dist and abs(newPosition[0] - gameState.getInitialAgentPosition(self.index)[0]) < abs(newPosition[0] - gameState.getInitialAgentPosition(closestOpponent)[0]):
           dist = self.distancer.getDistance(newPosition, closestOpponentPos)
           act = action
 
