@@ -23,7 +23,7 @@ from approximateAdversarial import ApproximateAdversarialAgent
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'CautiousAttackAgent', second = 'CautiousAttackAgent'):
+               first = 'CautiousAttackAgent', second = 'HunterDefenseAgent'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
