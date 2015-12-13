@@ -45,9 +45,10 @@ class ApproximateAdversarialAgent(CaptureAgent):
         self.observe(opponent, noisyDistances[opponent], gameState)
 
       self.displayDistributionsOverPositions(self.positionBeliefs.values())
-      probablePosition = self.positionBeliefs[opponent].argMax()
+      probablePosition = self.guessPosition(opponent)
       conf = game.Configuration(probablePosition, Directions.STOP)
-      probableState.data.agentStates[opponent] = game.AgentState(conf, False)
+      probableState.data.agentStates[opponent] = game.AgentState(
+                      conf, self.opponentInTerritory(gameState, opponent))
 
     # Run alpha-beta search to pick an optimal move
     return self.alphabeta(probableState, self.index,
@@ -94,6 +95,12 @@ class ApproximateAdversarialAgent(CaptureAgent):
     updatedBeliefs.normalize()
     self.positionBeliefs[agent] = updatedBeliefs
 
+  def guessPosition(self, agent):
+    """
+    Return the most likely position of the given agent in the game.
+    """
+    return self.positionBeliefs[agent].argMax()
+
   def alphabeta(self, state, agent, depth, alpha, beta, retAction=False):
     """
     Alpha-beta pruning adaptation
@@ -131,6 +138,10 @@ class ApproximateAdversarialAgent(CaptureAgent):
       return bestAction
     else:
       return bestVal
+
+  def opponentInTerritory(self, gameState, oppIndex):
+    return abs(self.guessPosition(oppIndex)[0] - gameState.getInitialAgentPosition(self.index)[0]) < \
+           abs(self.guessPosition(oppIndex)[0] - gameState.getInitialAgentPosition(oppIndex)[0])
 
   def evaluateState(self, gameState):
     """
