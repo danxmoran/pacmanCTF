@@ -3,7 +3,7 @@ import random, time, util
 from game import Directions
 import game
 
-SEARCH_DEPTH = 2
+SEARCH_DEPTH = 3
 
 class ApproximateAdversarialAgent(CaptureAgent):
   """
@@ -106,16 +106,18 @@ class ApproximateAdversarialAgent(CaptureAgent):
     Alpha-beta pruning adaptation
     """
     actions = state.getLegalActions(agent)
-    agentIsRed = state.isOnRedTeam(agent)
+    actions.remove(Directions.STOP)
+    actions.append(Directions.STOP)
     bestAction = None
 
     if not (depth and actions):
       bestVal = self.evaluateState(state)
+      if agent != self.index:
+        bestVal *= -1
     else:
-      if agentIsRed:
-        bestVal = float("-inf")
-      else:
-        bestVal = float("inf")
+      bestVal = float("inf")
+      if agent == self.index:
+        bestVal *= -1
 
       nextAgent = (agent + 1) % state.getNumAgents()
       # Don't include teammate in search tree
@@ -126,7 +128,7 @@ class ApproximateAdversarialAgent(CaptureAgent):
       for action in actions:
         successor = state.generateSuccessor(agent, action)
         value = self.alphabeta(successor, nextAgent, nextDepth, alpha, beta)
-        if agentIsRed:
+        if agent == self.index:
           if value > bestVal:
             bestVal, bestAction = value, action
           if bestVal > beta:
@@ -184,7 +186,6 @@ class CautiousAttackAgent(ApproximateAdversarialAgent):
              - 100 * len(targetFood) \
              - min(map(lambda f: self.distancer.getDistance(myPosition, f),
                    targetFood))
-
 
 class GoalieAgent(ApproximateAdversarialAgent):
   """
