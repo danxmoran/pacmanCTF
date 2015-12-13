@@ -23,7 +23,8 @@ from approximateAdversarial import ApproximateAdversarialAgent
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'CautiousAttackAgent', second = 'CautiousAttackAgent'):
+               first = 'CautiousAttackAgent',
+               second = 'GoalieAgent'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
@@ -69,7 +70,8 @@ class CautiousAttackAgent(ApproximateAdversarialAgent):
     targetFood = self.getFood(gameState).asList()
 
     if self.retreating:
-      return -self.distancer.getDistance(
+      return  -len(targetFood) \
+              -self.distancer.getDistance(
                myPosition, gameState.getInitialAgentPosition(self.index))
     else:
       return 2 * self.getScore(gameState) \
@@ -78,5 +80,23 @@ class CautiousAttackAgent(ApproximateAdversarialAgent):
                    targetFood))
 
 
+class GoalieAgent(ApproximateAdversarialAgent):
+  """
+  A defense-oriented agent that tries to place itself between its team's
+  food and the closest opponent.
+  """
+  def evaluateState(self, gameState):
+    myPosition = gameState.getAgentState(self.index).getPosition()
+    shieldedFood = self.getFoodYouAreDefending(gameState).asList()
+    opponentPositions = [gameState.getAgentState(opponent).getPosition()
+                         for opponent in self.getOpponents(gameState)]
 
-
+    if len(shieldedFood):
+      opponentDistances = [(f, o, self.distancer.getDistance(f, o))
+                           for f in shieldedFood for o in opponentPositions]
+      atRiskFood, threateningOpponent = min(opponentDistances, key=lambda t: t[2])[0:2]
+      return 1000 \
+             -2 * self.distancer.getDistance(myPosition, atRiskFood) \
+             -self.distancer.getDistance(myPosition, threateningOpponent)
+    else:
+      return -min([self.distancer.getDistance(myPosition, o) for o in opponentPositions])
