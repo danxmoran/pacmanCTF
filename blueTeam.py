@@ -98,9 +98,11 @@ class HunterDefenseAgent(ApproximateAdversarialAgent):
 
 
     act = None
-    if self.distancer.getDistance(closestOpponentPos, gameState.getInitialAgentPosition(closestOpponent)) < \
-      self.distancer.getDistance(closestOpponentPos, gameState.getInitialAgentPosition(self.index)):
+    if self.opponentInTerritory(self, gameState, closestOpponent):
       for action in gameState.getLegalActions(self.index):
+        newState = gameState.generateSuccessor(self.index, action)
+        newPosition = newState.getAgentState(self.index).getPosition()
 
+        if
 
 
