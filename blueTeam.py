@@ -96,6 +96,9 @@ class HunterDefenseAgent(ApproximateAdversarialAgent):
     act = None
     dist = self.distancer.getDistance(myPosition, closestOpponentPos)
     for action in gameState.getLegalActions(self.index):
+      if act is None:
+        act = action
+
       newState = gameState.generateSuccessor(self.index, action)
       newPosition = newState.getAgentState(self.index).getPosition()
 
@@ -115,7 +118,11 @@ class HunterDefenseAgent(ApproximateAdversarialAgent):
     targetFood = self.getFood(gameState).asList()
 
     score = 0
+
     for opponent in ApproximateAdversarialAgent.getOpponents(self, gameState):
+      if abs(myPosition[0] - gameState.getInitialAgentPosition(opponent)[0]) < abs(myPosition[0] - gameState.getInitialAgentPosition(self.index))[0]:
+        return -1000000
+
       if not self.opponentInTerritory(self, gameState, opponent):
         score += 1000
       else:
