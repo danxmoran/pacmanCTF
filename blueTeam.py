@@ -86,8 +86,8 @@ class HunterDefenseAgent(ApproximateAdversarialAgent):
     ApproximateAdversarialAgent.registerInitialState(self, gameState)
 
   def opponentInTerritory(self, gameState, oppIndex):
-    return self.distancer.getDistance(gameState.getAgentPosition(oppIndex), gameState.getInitialAgentPosition(self.index)) < \
-      self.distancer.getDistance(gameState.getAgentPosition(oppIndex), gameState.getInitialAgentPosition(oppIndex))
+    return abs(gameState.getAgentPosition(oppIndex)[0] - gameState.getInitialAgentPosition(self.index)[0]) < \
+           abs(gameState.getAgentPosition(oppIndex)[0] - gameState.getInitialAgentPosition(oppIndex)[0])
 
   def chooseAction(self, gameState):
     myPosition = gameState.getAgentState(self.index).getPosition()
