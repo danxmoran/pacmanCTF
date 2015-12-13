@@ -108,7 +108,7 @@ class HunterDefenseAgent(ApproximateAdversarialAgent):
           dist = self.distancer.getDistance(newPosition, closestOpponentPos)
           act = action
 
-      return act
+    return act
 
   def evaluateState(self, gameState):
     myPosition = gameState.getAgentState(self.index).getPosition()
