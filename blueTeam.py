@@ -89,16 +89,36 @@ class HunterDefenseAgent(ApproximateAdversarialAgent):
     myPosition = gameState.getAgentState(self.index).getPosition()
 
     closestOpponent = min(ApproximateAdversarialAgent.getOpponents(self, gameState),
-                          key=lambda o: self.distancer.getDistance(myPosition, gameState.getAgentPosition(o)))
-    closestOpponentPos = gameState.getAgentPosition(closestOpponent)
+                          key=lambda o: self.distancer.getDistance(myPosition, gameState.guessPosition(o)))
+    closestOpponentPos = gameState.guessPosition(closestOpponent)
 
 
     act = None
-    if self.opponentInTerritory(self, gameState, closestOpponent):
-      for action in gameState.getLegalActions(self.index):
-        newState = gameState.generateSuccessor(self.index, action)
-        newPosition = newState.getAgentState(self.index).getPosition()
+    dist = self.distancer.getDistance(myPosition, closestOpponentPos)
+    for action in gameState.getLegalActions(self.index):
+      newState = gameState.generateSuccessor(self.index, action)
+      newPosition = newState.getAgentState(self.index).getPosition()
 
-        if
+      if self.opponentInTerritory(self, gameState, closestOpponent):
+        if self.distancer.getDistance(newPosition, closestOpponentPos) < dist:
+          dist = self.distancer.getDistance(newPosition, closestOpponentPos)
+          act = action
+      else:
+        if self.distancer.getDistance(newPosition, closestOpponentPos) < dist and abs(newPosition[0] - gameState.getInitialAgentPosition(self.index)[0]) < abs(newPosition[0] - gameState.getInitialAgentPosition(closestOpponent)[0]):
+          dist = self.distancer.getDistance(newPosition, closestOpponentPos)
+          act = action
+
+      return act
+
+  def evaluateState(self, gameState):
+    myPosition = gameState.getAgentState(self.index).getPosition()
+    targetFood = self.getFood(gameState).asList()
+
+    score = 0
+    for opponent in ApproximateAdversarialAgent.getOpponents(self, gameState):
+      if not self.opponentInTerritory(self, gameState, opponent):
+        score += 1000
+      else:
+        score -= self.distancer.getDistance(myPosition, gameState.getAgentState(opponent).getPosition())
 
 
