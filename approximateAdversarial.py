@@ -30,25 +30,38 @@ class ApproximateAdversarialAgent(CaptureAgent):
       self.positionBeliefs[agent][p] = 1.0
 
   def chooseAction(self, gameState):
-    # Update belief distribution about opponent positions
+    # Update belief distribution about opponent positions and place hidden
+    # opponents in their most likely positions
+    myPosition = gameState.getAgentState(self.index).getPosition()
     noisyDistances = gameState.getAgentDistances()
-    for opponent in self.getOpponents(gameState):
-      self.elapseTime(opponent, gameState)
-      self.observe(opponent, noisyDistances[opponent], gameState)
-
-    # Place hidden opponents in their most likely positions
     probableState = gameState.deepCopy()
+
     for opponent in self.getOpponents(gameState):
-      if not probableState.getAgentPosition(opponent):
-        probablePosition = self.positionBeliefs[opponent].argMax()
-        conf = game.Configuration(probablePosition, Directions.STOP)
-        probableState.data.agentStates[opponent] = game.AgentState(conf, False)
+      pos = gameState.getAgentPosition(opponent)
+      if pos:
+        self.fixPosition(opponent, pos)
+      else:
+        self.elapseTime(opponent, gameState)
+        self.observe(opponent, noisyDistances[opponent], gameState)
+
+      self.displayDistributionsOverPositions(self.positionBeliefs.values())
+      probablePosition = self.positionBeliefs[opponent].argMax()
+      conf = game.Configuration(probablePosition, Directions.STOP)
+      probableState.data.agentStates[opponent] = game.AgentState(conf, False)
 
     # Run alpha-beta search to pick an optimal move
     return self.alphabeta(probableState, self.index,
                           SEARCH_DEPTH,
                           float("-inf"), float("inf"),
                           retAction=True)
+
+  def fixPosition(self, agent, position):
+    """
+    Fix the position of an opponent in an agent's belief distributions.
+    """
+    updatedBeliefs = util.Counter()
+    updatedBeliefs[position] = 1.0
+    self.positionBeliefs[agent] = updatedBeliefs
 
   def elapseTime(self, agent, gameState):
     """
@@ -74,7 +87,7 @@ class ApproximateAdversarialAgent(CaptureAgent):
     myPosition = gameState.getAgentState(self.index).getPosition()
     updatedBeliefs = util.Counter()
     for p in self.legalPositions:
-      trueDistance = self.distancer.getDistance(myPosition, p)
+      trueDistance = util.manhattanDistance(myPosition, p)
       positionProbability = gameState.getDistanceProb(trueDistance, noisyDistance)
       updatedBeliefs[p] = positionProbability * self.positionBeliefs[agent][p]
 
