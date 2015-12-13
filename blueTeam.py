@@ -77,6 +77,30 @@ class CautiousAttackAgent(ApproximateAdversarialAgent):
              - min(map(lambda f: self.distancer.getDistance(myPosition, f),
                    targetFood))
 
+class HunterDefenseAgent(ApproximateAdversarialAgent):
+  """
+  A defense-oriented agent that actively seeks out an enemy agent in its territory
+  and tries to hunt it down
+  """
+  def registerInitialState(self, gameState):
+    ApproximateAdversarialAgent.registerInitialState(self, gameState)
+
+  def opponentInTerritory(self, gameState, oppIndex):
+    return self.distancer.getDistance(gameState.getAgentPosition(oppIndex), gameState.getInitialAgentPosition(self.index)) < \
+      self.distancer.getDistance(gameState.getAgentPosition(oppIndex), gameState.getInitialAgentPosition(oppIndex))
+
+  def chooseAction(self, gameState):
+    myPosition = gameState.getAgentState(self.index).getPosition()
+
+    closestOpponent = min(ApproximateAdversarialAgent.getOpponents(self, gameState),
+                          key=lambda o: self.distancer.getDistance(myPosition, gameState.getAgentPosition(o)))
+    closestOpponentPos = gameState.getAgentPosition(closestOpponent)
+
+
+    act = None
+    if self.distancer.getDistance(closestOpponentPos, gameState.getInitialAgentPosition(closestOpponent)) < \
+      self.distancer.getDistance(closestOpponentPos, gameState.getInitialAgentPosition(self.index)):
+      for action in gameState.getLegalActions(self.index):
 
 
 
