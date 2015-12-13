@@ -186,6 +186,23 @@ class CautiousAttackAgent(ApproximateAdversarialAgent):
                    targetFood))
 
 
+class OpportunisticAttackAgent(ApproximateAdversarialAgent):
+  def evaluateState(self, gameState):
+    myPosition = gameState.getAgentState(self.index).getPosition()
+    food = self.getFood(gameState).asList()
+
+    targetFood = None
+    maxDist = 0
+
+    for f in food:
+      d = min(ApproximateAdversarialAgent.getOpponents(self, gameState), key=lambda o: self.distancer.getDistance(gameState.getAgentState(o), f))
+      if d > maxDist:
+        targetFood = f
+        maxDist = d
+
+    return 2 * self.getScore(gameState) - 100 * len(food) - self.distancer.getDistance(myPosition, targetFood)
+
+
 class GoalieAgent(ApproximateAdversarialAgent):
   """
   A defense-oriented agent that tries to place itself between its team's
@@ -214,10 +231,8 @@ class HunterDefenseAgent(ApproximateAdversarialAgent):
   """
   def evaluateState(self, gameState):
     myPosition = gameState.getAgentState(self.index).getPosition()
-    targetFood = self.getFood(gameState).asList()
 
     score = 0
-
     for opponent in ApproximateAdversarialAgent.getOpponents(self, gameState):
       if abs(myPosition[0] - gameState.getInitialAgentPosition(opponent)[0]) < \
          abs(myPosition[0] - gameState.getInitialAgentPosition(self.index)[0]):
