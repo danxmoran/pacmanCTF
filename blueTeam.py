@@ -93,7 +93,7 @@ class HunterDefenseAgent(ApproximateAdversarialAgent):
          abs(myPosition[0] - gameState.getInitialAgentPosition(self.index)[0]):
         return -1000000
 
-      if not self.opponentInTerritory(gameState, opponent):
+      if not self.agentIsPacman(opponent, gameState):
         score += 1000
 
       score -= self.distancer.getDistance(myPosition, gameState.getAgentState(opponent).getPosition())

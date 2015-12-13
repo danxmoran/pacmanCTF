@@ -48,7 +48,7 @@ class ApproximateAdversarialAgent(CaptureAgent):
       probablePosition = self.guessPosition(opponent)
       conf = game.Configuration(probablePosition, Directions.STOP)
       probableState.data.agentStates[opponent] = game.AgentState(
-                      conf, self.opponentInTerritory(gameState, opponent))
+                      conf, self.agentIsPacman(opponent, gameState))
 
     # Run alpha-beta search to pick an optimal move
     return self.alphabeta(probableState, self.index,
@@ -106,23 +106,27 @@ class ApproximateAdversarialAgent(CaptureAgent):
     Alpha-beta pruning adaptation
     """
     actions = state.getLegalActions(agent)
-    actions.remove(Directions.STOP)
+    agentIsRed = state.isOnRedTeam(agent)
     bestAction = None
+
     if not (depth and actions):
       bestVal = self.evaluateState(state)
     else:
-      if agent in self.getTeam(state):
+      if agentIsRed:
         bestVal = float("-inf")
       else:
         bestVal = float("inf")
 
       nextAgent = (agent + 1) % state.getNumAgents()
+      # Don't include teammate in search tree
+      while nextAgent in self.getTeam(state) and nextAgent != self.index:
+        nextAgent = (nextAgent + 1) % state.getNumAgents()
       nextDepth = depth - 1 if nextAgent == self.index else depth
 
       for action in actions:
         successor = state.generateSuccessor(agent, action)
         value = self.alphabeta(successor, nextAgent, nextDepth, alpha, beta)
-        if state.isOnRedTeam(agent):
+        if agentIsRed:
           if value > bestVal:
             bestVal, bestAction = value, action
           if bestVal > beta:
@@ -134,14 +138,14 @@ class ApproximateAdversarialAgent(CaptureAgent):
           if bestVal < alpha:
             break
           beta = min(beta, bestVal)
+
     if retAction:
       return bestAction
     else:
       return bestVal
 
-  def opponentInTerritory(self, gameState, oppIndex):
-    return abs(self.guessPosition(oppIndex)[0] - gameState.getInitialAgentPosition(self.index)[0]) < \
-           abs(self.guessPosition(oppIndex)[0] - gameState.getInitialAgentPosition(oppIndex)[0])
+  def agentIsPacman(self, agent, gameState):
+    return (gameState.isRed(self.guessPosition(oppIndex)) != gameState.isOnRedTeam(oppIndex))
 
   def evaluateState(self, gameState):
     """
