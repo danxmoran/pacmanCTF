@@ -3,7 +3,9 @@ import random, time, util
 from game import Directions
 import game
 
-SEARCH_DEPTH = 3
+import pdb
+
+SEARCH_DEPTH = 5
 
 class ApproximateAdversarialAgent(CaptureAgent):
   """
@@ -52,17 +54,15 @@ class ApproximateAdversarialAgent(CaptureAgent):
 
     # Run negamax alpha-beta search to pick an optimal move
     bestVal, bestAction = float("-inf"), None
-    sign = 1 if gameState.isOnRedTeam(self.index) else -1
     for opponent in self.getOpponents(gameState):
       value, action = self.negamax(opponent,
                                    probableState,
                                    SEARCH_DEPTH,
                                    float("-inf"),
                                    float("inf"),
-                                   sign,
+                                   1,
                                    retAction=True)
-      print value, action
-      if sign * value > bestVal:
+      if value > bestVal:
         bestVal, bestAction = value, action
 
     return action
@@ -179,10 +179,12 @@ class CautiousAttackAgent(ApproximateAdversarialAgent):
               -self.distancer.getDistance(
                myPosition, gameState.getInitialAgentPosition(self.index))
     else:
+      foodDistances = [self.distancer.getDistance(myPosition, food)
+                       for food in targetFood]
+      minDistance = min(foodDistances) if len(foodDistances) else 0
       return 2 * self.getScore(gameState) \
-             - 100 * len(targetFood) \
-             - min(map(lambda f: self.distancer.getDistance(myPosition, f),
-                   targetFood))
+             -100 * len(targetFood) \
+             -minDistance
 
 
 class OpportunisticAttackAgent(ApproximateAdversarialAgent):
