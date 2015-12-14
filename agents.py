@@ -211,9 +211,12 @@ class OpportunisticAttackAgent(ApproximateAdversarialAgent):
         targetFood = f
         maxDist = d
 
+    closestOpponent = min(self.getOpponents(gameState), key=lambda o: self.distancer.getDistance(myPosition, o.getPosition()))
+
     return 2 * self.getScore(gameState) \
            -100 * len(food) \
-           -self.distancer.getDistance(myPosition, targetFood)
+           -self.distancer.getDistance(myPosition, targetFood) \
+           +self.distancer.getDistance(myPosition, closestOpponent.getPosition())
 
 
 class GoalieAgent(ApproximateAdversarialAgent):
