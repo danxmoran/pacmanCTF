@@ -194,7 +194,7 @@ class OpportunisticAttackAgent(ApproximateAdversarialAgent):
     maxDist = 0
 
     if not food or gameState.getAgentState(self.index).numCarrying > self.getScore(gameState):
-      return -self.distancer.getDistance(myPosition, gameState.getInitialAgentPosition(self.index))
+      return 20*self.getScore(gameState) - self.distancer.getDistance(myPosition, gameState.getInitialAgentPosition(self.index))
 
     for f in food:
       d = min(map(lambda o: self.distancer.getDistance(gameState.getAgentState(o).getPosition(), f), self.getOpponents(gameState)))
