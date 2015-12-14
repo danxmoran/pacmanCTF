@@ -181,17 +181,20 @@ class CautiousAttackAgent(ApproximateAdversarialAgent):
     myPosition = gameState.getAgentState(self.index).getPosition()
     targetFood = self.getFood(gameState).asList()
 
+    closestOpponent = min(self.getOpponents(gameState), key=lambda o: self.distancer.getDistance(myPosition, o.getPosition()))
+
     if self.retreating:
       return  -len(targetFood) \
-              -self.distancer.getDistance(
-               myPosition, gameState.getInitialAgentPosition(self.index))
+              -self.distancer.getDistance(myPosition, gameState.getInitialAgentPosition(self.index)) \
+              +self.distancer.getDistance(myPosition, closestOpponent.getPosition())
     else:
       foodDistances = [self.distancer.getDistance(myPosition, food)
                        for food in targetFood]
       minDistance = min(foodDistances) if len(foodDistances) else 0
       return 2 * self.getScore(gameState) \
              -100 * len(targetFood) \
-             -minDistance
+             -minDistance \
+             +self.distancer.getDistance(myPosition, closestOpponent.getPosition())
 
 
 class OpportunisticAttackAgent(ApproximateAdversarialAgent):
