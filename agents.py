@@ -1,4 +1,5 @@
 from captureAgents import CaptureAgent
+from capture import SIGHT_RANGE
 import random, time, util
 from game import Directions
 import game
@@ -50,7 +51,8 @@ class ApproximateAdversarialAgent(CaptureAgent):
         self.elapseTime(opponent, gameState)
         self.observe(opponent, noisyDistances[opponent], gameState)
 
-      self.displayDistributionsOverPositions(self.positionBeliefs.values())
+    self.displayDistributionsOverPositions(self.positionBeliefs.values())
+    for opponent in self.getOpponents(gameState):
       probablePosition = self.guessPosition(opponent)
       conf = game.Configuration(probablePosition, Directions.STOP)
       probableState.data.agentStates[opponent] = game.AgentState(
@@ -80,6 +82,8 @@ class ApproximateAdversarialAgent(CaptureAgent):
   def elapseTime(self, agent, gameState):
     """
     Elapse belief distributions for an agent's position by one time step.
+    Assume opponents move randomly, but also check for any food lost from
+    the previous turn.
     """
     updatedBeliefs = util.Counter()
     for (oldX, oldY), oldProbability in self.positionBeliefs[agent].items():
@@ -91,19 +95,35 @@ class ApproximateAdversarialAgent(CaptureAgent):
       newDist.normalize()
       for newPosition, newProbability in newDist.items():
         updatedBeliefs[newPosition] += newProbability * oldProbability
+
+    lastObserved = self.getPreviousObservation()
+    if lastObserved:
+      lostFood = [food for food in self.getFoodYouAreDefending(lastObserved).asList()
+                  if food not in self.getFoodYouAreDefending(gameState).asList()]
+      for f in lostFood:
+        updatedBeliefs[f] = 1.0/len(self.getOpponents(gameState))
+
     self.positionBeliefs[agent] = updatedBeliefs
+
 
   def observe(self, agent, noisyDistance, gameState):
     """
     Update belief distributions for an agent's position based upon
     a noisy distance measurement for that agent.
     """
-    myPosition = gameState.getAgentState(self.index).getPosition()
+    myPosition = self.getAgentPosition(self.index, gameState)
+    teammatePositions = [self.getAgentPosition(teammate, gameState)
+                         for teammate in self.getTeam(gameState)]
     updatedBeliefs = util.Counter()
+
     for p in self.legalPositions:
-      trueDistance = util.manhattanDistance(myPosition, p)
-      positionProbability = gameState.getDistanceProb(trueDistance, noisyDistance)
-      updatedBeliefs[p] = positionProbability * self.positionBeliefs[agent][p]
+      if any([util.manhattanDistance(teammatePos, p) <= SIGHT_RANGE
+              for teammatePos in teammatePositions]):
+        updatedBeliefs[p] = 0.0
+      else:
+        trueDistance = util.manhattanDistance(myPosition, p)
+        positionProbability = gameState.getDistanceProb(trueDistance, noisyDistance)
+        updatedBeliefs[p] = positionProbability * self.positionBeliefs[agent][p]
 
     if not updatedBeliefs.totalCount():
       self.initializeBeliefs(agent)
