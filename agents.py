@@ -50,11 +50,22 @@ class ApproximateAdversarialAgent(CaptureAgent):
       probableState.data.agentStates[opponent] = game.AgentState(
                       conf, self.agentIsPacman(opponent, gameState))
 
-    # Run alpha-beta search to pick an optimal move
-    return self.alphabeta(probableState, self.index,
-                          SEARCH_DEPTH,
-                          float("-inf"), float("inf"),
-                          retAction=True)
+    # Run negamax alpha-beta search to pick an optimal move
+    bestVal, bestAction = float("-inf"), None
+    sign = 1 if gameState.isOnRedTeam(self.index) else -1
+    for opponent in self.getOpponents(gameState):
+      value, action = self.negamax(opponent,
+                                   probableState,
+                                   SEARCH_DEPTH,
+                                   float("-inf"),
+                                   float("inf"),
+                                   sign,
+                                   retAction=True)
+      print value, action
+      if sign * value > bestVal:
+        bestVal, bestAction = value, action
+
+    return action
 
   def fixPosition(self, agent, position):
     """
@@ -101,48 +112,34 @@ class ApproximateAdversarialAgent(CaptureAgent):
     """
     return self.positionBeliefs[agent].argMax()
 
-  def alphabeta(self, state, agent, depth, alpha, beta, retAction=False):
+  def negamax(self, opponent, state, depth, alpha, beta, sign, retAction=False):
     """
-    Alpha-beta pruning adaptation
+    Negamax variation of minimax, with alpha-beta pruning.
     """
+    if sign == 1:
+      agent = self.index
+    else:
+      agent = opponent
+
     actions = state.getLegalActions(agent)
     actions.remove(Directions.STOP)
     actions.append(Directions.STOP)
+
     bestAction = None
-
     if not (depth and actions):
-      bestVal = self.evaluateState(state)
-      if agent != self.index:
-        bestVal *= -1
+      bestVal = sign * self.evaluateState(state)
     else:
-      bestVal = float("inf")
-      if agent == self.index:
-        bestVal *= -1
-
-      nextAgent = (agent + 1) % state.getNumAgents()
-      # Don't include teammate in search tree
-      while nextAgent in self.getTeam(state) and nextAgent != self.index:
-        nextAgent = (nextAgent + 1) % state.getNumAgents()
-      nextDepth = depth - 1 if nextAgent == self.index else depth
-
+      bestVal = float("-inf")
       for action in actions:
         successor = state.generateSuccessor(agent, action)
-        value = self.alphabeta(successor, nextAgent, nextDepth, alpha, beta)
-        if agent == self.index:
-          if value > bestVal:
-            bestVal, bestAction = value, action
-          if bestVal > beta:
-            break
-          alpha = max(alpha, bestVal)
-        else:
-          if value < bestVal:
-            bestVal, bestAction = value, action
-          if bestVal < alpha:
-            break
-          beta = min(beta, bestVal)
-
+        value = -self.negamax(opponent, successor, depth - 1, -alpha, -beta, -sign)
+        if value > bestVal:
+          bestVal, bestAction = value, action
+        alpha = max(alpha, value)
+        if alpha >= beta:
+          break
     if retAction:
-      return bestAction
+      return bestVal, bestAction
     else:
       return bestVal
 
@@ -202,7 +199,9 @@ class OpportunisticAttackAgent(ApproximateAdversarialAgent):
         targetFood = f
         maxDist = d
 
-    return 2 * self.getScore(gameState) - 100 * len(food) - self.distancer.getDistance(myPosition, targetFood)
+    return 2 * self.getScore(gameState) \
+           -100 * len(food) \
+           -self.distancer.getDistance(myPosition, targetFood)
 
 
 class GoalieAgent(ApproximateAdversarialAgent):

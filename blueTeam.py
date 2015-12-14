@@ -11,14 +11,15 @@
 # Student side autograding was added by Brad Miller, Nick Hay, and
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
-from agents import CautiousAttackAgent, HunterDefenseAgent
+from agents import OpportunisticAttackAgent, HunterDefenseAgent
 
 #################
 # Team creation #
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'CautiousAttackAgent', second = 'HunterDefenseAgent'):
+               first = 'OpportunisticAttackAgent',
+               second = 'HunterDefenseAgent'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
