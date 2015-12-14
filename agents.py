@@ -116,16 +116,6 @@ class ApproximateAdversarialAgent(CaptureAgent):
     """
     return self.positionBeliefs[agent].argMax()
 
-  def agentIsPacman(self, agent, gameState, guessPosition=False):
-    """
-    Check if the given agent is operating as a Pacman in its current position.
-    """
-    if guessPosition:
-      agentPos = self.guessPosition(agent)
-    else:
-      agentPos = gameState.getAgentState(agent).getPosition()
-    return (gameState.isRed(agentPos) != gameState.isOnRedTeam(agent))
-
   def expectinegamax(self, opponent, state, depth, sign, retAction=False):
     """
     Negamax variation of expectimax.
@@ -168,6 +158,35 @@ class ApproximateAdversarialAgent(CaptureAgent):
     """
     util.raiseNotDefined()
 
+  #####################
+  # Utility functions #
+  #####################
+
+  def getAgentPosition(self, agent, gameState, guessPosition=False):
+    """
+    Return the position of the given agent.
+    """
+    if guessPosition:
+      return self.guessPosition(agent)
+    else:
+      return gameState.getAgentState(agent).getPosition()
+
+  def agentIsPacman(self, agent, gameState, guessPosition=False):
+    """
+    Check if the given agent is operating as a Pacman in its current position.
+    """
+    agentPos = self.getAgentPosition(agent, gameState, guessPosition)
+    return (gameState.isRed(agentPos) != gameState.isOnRedTeam(agent))
+
+  def getOpponentDistances(self, gameState):
+    """
+    Return the IDs of and distances to opponents, relative to this agent.
+    """
+    return [(o, self.distancer.getDistance(
+             self.getAgentPosition(self.index, gameState),
+             self.getAgentPosition(o, gameState)))
+            for o in self.getOpponents(gameState)]
+
 class CautiousAttackAgent(ApproximateAdversarialAgent):
   """
   An attack-oriented agent that will retreat back to its home zone
@@ -187,66 +206,73 @@ class CautiousAttackAgent(ApproximateAdversarialAgent):
     return ApproximateAdversarialAgent.chooseAction(self, gameState)
 
   def evaluateState(self, gameState):
-    myPosition = gameState.getAgentState(self.index).getPosition()
+    myPosition = self.getAgentPosition(self.index, gameState)
     targetFood = self.getFood(gameState).asList()
 
-    closestOpponent = min(self.getOpponents(gameState), key=lambda o: self.distancer.getDistance(myPosition, gameState.getAgentState(o).getPosition()))
-
     if self.retreating:
-      return  -len(targetFood) \
-              -self.distancer.getDistance(myPosition, gameState.getInitialAgentPosition(self.index)) \
-              +self.distancer.getDistance(myPosition, gameState.getAgentState(closestOpponent).getPosition())/2
+      return  - len(targetFood) \
+              - self.distancer.getDistance(
+                  myPosition, gameState.getInitialAgentPosition(self.index))
     else:
       foodDistances = [self.distancer.getDistance(myPosition, food)
                        for food in targetFood]
       minDistance = min(foodDistances) if len(foodDistances) else 0
       return 2 * self.getScore(gameState) \
-             -100 * len(targetFood) \
-             -minDistance \
-             +self.distancer.getDistance(myPosition, gameState.getAgentState(closestOpponent).getPosition())/2
+             - 100 * len(targetFood) \
+             - minDistance
 
 
 class OpportunisticAttackAgent(ApproximateAdversarialAgent):
   def evaluateState(self, gameState):
-    myPosition = gameState.getAgentState(self.index).getPosition()
+    myPosition = self.getAgentPosition(self.index, gameState)
     food = self.getFood(gameState).asList()
 
     targetFood = None
     maxDist = 0
 
-    closestOpponent = min(self.getOpponents(gameState), key=lambda o: self.distancer.getDistance(myPosition, gameState.getAgentState(o).getPosition()))
-
+    opponentDistances = self.getOpponentDistances(gameState)
+    opponentDistance = min([dist for id, dist in opponentDistances])
 
     if not food or gameState.getAgentState(self.index).numCarrying > self.getScore(gameState) > 0:
       return 20 * self.getScore(gameState) \
              - self.distancer.getDistance(myPosition, gameState.getInitialAgentPosition(self.index)) \
-             + self.distancer.getDistance(myPosition, gameState.getAgentState(closestOpponent).getPosition())/2
+             + opponentDistance
 
     for f in food:
-      d = min(map(lambda o: self.distancer.getDistance(gameState.getAgentState(o).getPosition(), f), self.getOpponents(gameState)))
+      d = min([self.distancer.getDistance(self.getAgentPosition(o, gameState), f)
+              for o in self.getOpponents(gameState)])
       if d > maxDist:
         targetFood = f
         maxDist = d
 
     return 2 * self.getScore(gameState) \
-           -100 * len(food) \
-           -self.distancer.getDistance(myPosition, targetFood) \
-           +self.distancer.getDistance(myPosition, gameState.getAgentState(closestOpponent).getPosition())/2
+           - 100 * len(food) \
+           - 2 * self.distancer.getDistance(myPosition, targetFood) \
+           + opponentDistance
 
 
-class GoalieAgent(ApproximateAdversarialAgent):
+class DefensiveAgent(ApproximateAdversarialAgent):
   """
-  A defense-oriented agent that tries to place itself between its team's
-  food and the closest opponent.
+  A defense-oriented agent that should never cross into the opponent's territory.
   """
+  TERMINAL_STATE_VALUE = -1000000
+
   def stateIsTerminal(self, agent, gameState):
     return self.agentIsPacman(self.index, gameState) or \
       ApproximateAdversarialAgent.stateIsTerminal(self, agent, gameState)
 
+class GoalieAgent(DefensiveAgent):
+  """
+  A defense-oriented agent that tries to place itself between its team's
+  food and the closest opponent.
+  """
   def evaluateState(self, gameState):
-    myPosition = gameState.getAgentState(self.index).getPosition()
+    if self.agentIsPacman(self.index, gameState):
+      return DefensiveAgent.TERMINAL_STATE_VALUE
+
+    myPosition = self.getAgentPosition(self.index, gameState)
     shieldedFood = self.getFoodYouAreDefending(gameState).asList()
-    opponentPositions = [gameState.getAgentState(opponent).getPosition()
+    opponentPositions = [self.getAgentPosition(opponent, gameState)
                          for opponent in self.getOpponents(gameState)]
 
     if len(shieldedFood):
@@ -254,32 +280,37 @@ class GoalieAgent(ApproximateAdversarialAgent):
                            for f in shieldedFood for o in opponentPositions]
       atRiskFood, threateningOpponent = min(opponentDistances, key=lambda t: t[2])[0:2]
       score = len(shieldedFood) \
-             -2 * self.distancer.getDistance(myPosition, atRiskFood) \
-             -self.distancer.getDistance(myPosition, threateningOpponent) \
-             +3 * self.distancer.getDistance(atRiskFood, threateningOpponent)
+              - 2 * self.distancer.getDistance(myPosition, atRiskFood) \
+              - self.distancer.getDistance(myPosition, threateningOpponent) \
+              + 3 * self.distancer.getDistance(atRiskFood, threateningOpponent)
       return score
     else:
-      return -min([self.distancer.getDistance(myPosition, o) for o in opponentPositions])
+      return -min([self.distancer.getDistance(myPosition, o)
+                   for o in opponentPositions
+                   if self.agentIsPacman(o, gameState)] + [float("inf")])
 
-class HunterDefenseAgent(ApproximateAdversarialAgent):
+class HunterDefenseAgent(DefensiveAgent):
   """
   A defense-oriented agent that actively seeks out an enemy agent in its territory
   and tries to hunt it down
   """
-  def stateIsTerminal(self, agent, gameState):
-    return self.agentIsPacman(self.index, gameState) or \
-      ApproximateAdversarialAgent.stateIsTerminal(self, agent, gameState)
-
   def evaluateState(self, gameState):
-    myPosition = gameState.getAgentState(self.index).getPosition()
+    myPosition = self.getAgentPosition(self.index, gameState)
     if self.agentIsPacman(self.index, gameState):
-        return -1000000
+        return DefensiveAgent.TERMINAL_STATE_VALUE
 
     score = 0
-    for opponent in ApproximateAdversarialAgent.getOpponents(self, gameState):
-      if not self.agentIsPacman(opponent, gameState):
-        score += 1000
+    pacmanState = [self.agentIsPacman(opponent, gameState)
+                   for opponent in self.getOpponents(gameState)]
+    opponentDistances = self.getOpponentDistances(gameState)
 
-      score -= self.distancer.getDistance(myPosition, gameState.getAgentState(opponent).getPosition())
+    print zip(pacmanState, opponentDistances)
+    for isPacman, (id, distance) in zip(pacmanState, opponentDistances):
+      if not isPacman:
+        score += 100000
+        score -= 5 * distance
+      elif not any(pacmanState):
+        score -= distance
 
+    print score
     return score
