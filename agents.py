@@ -231,18 +231,22 @@ class CautiousAttackAgent(ApproximateAdversarialAgent):
     myPosition = self.getAgentPosition(self.index, gameState)
     targetFood = self.getFood(gameState).asList()
     distanceFromStart = abs(myPosition[0] - gameState.getInitialAgentPosition(self.index)[0])
+    opponentDistances = self.getOpponentDistances(gameState)
+    opponentDistance = min([dist for id, dist in opponentDistances])
 
     if self.retreating:
       return  - len(targetFood) \
-              - 2 * distanceFromStart
+              - 2 * distanceFromStart \
+              + opponentDistance
     else:
       foodDistances = [self.distancer.getDistance(myPosition, food)
                        for food in targetFood]
       minDistance = min(foodDistances) if len(foodDistances) else 0
       return 2 * self.getScore(gameState) \
              - 100 * len(targetFood) \
-             - minDistance \
-             + distanceFromStart / 2
+             - 3 * minDistance \
+             + 2 * distanceFromStart \
+             + opponentDistance
 
 
 class OpportunisticAttackAgent(ApproximateAdversarialAgent):
@@ -268,10 +272,15 @@ class OpportunisticAttackAgent(ApproximateAdversarialAgent):
         targetFood = f
         maxDist = d
 
+    distanceFromStart = abs(myPosition[0] - gameState.getInitialAgentPosition(self.index)[0])
+    if not len(food):
+      distanceFromStart *= -1
+
     return 2 * self.getScore(gameState) \
            - 100 * len(food) \
            - 2 * self.distancer.getDistance(myPosition, targetFood) \
-           + opponentDistance
+           + opponentDistance \
+           + distanceFromStart
 
 
 class DefensiveAgent(ApproximateAdversarialAgent):
@@ -343,8 +352,8 @@ class HunterDefenseAgent(DefensiveAgent):
     opponentDistances = self.getOpponentDistances(gameState)
 
     for isPacman, (id, distance) in zip(pacmanState, opponentDistances):
-      if not isPacman:
-        score += 100000
+      if isPacman:
+        score -= 100000
         score -= 5 * distance
       elif not any(pacmanState):
         score -= distance
