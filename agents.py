@@ -5,13 +5,17 @@ import game
 
 import pdb
 
-SEARCH_DEPTH = 5
-
 class ApproximateAdversarialAgent(CaptureAgent):
   """
   Superclass for agents choosing actions via alpha-beta search, with
   positions of unseen enemies approximated by Bayesian inference
   """
+  #####################
+  # AI algorithm code #
+  #####################
+
+  SEARCH_DEPTH = 5
+
   def registerInitialState(self, gameState):
     CaptureAgent.registerInitialState(self, gameState)
 
@@ -46,7 +50,6 @@ class ApproximateAdversarialAgent(CaptureAgent):
         self.elapseTime(opponent, gameState)
         self.observe(opponent, noisyDistances[opponent], gameState)
 
-      #self.displayDistributionsOverPositions(self.positionBeliefs.values())
       probablePosition = self.guessPosition(opponent)
       conf = game.Configuration(probablePosition, Directions.STOP)
       probableState.data.agentStates[opponent] = game.AgentState(
@@ -55,13 +58,11 @@ class ApproximateAdversarialAgent(CaptureAgent):
     # Run negamax alpha-beta search to pick an optimal move
     bestVal, bestAction = float("-inf"), None
     for opponent in self.getOpponents(gameState):
-      value, action = self.negamax(opponent,
-                                   probableState,
-                                   SEARCH_DEPTH,
-                                   float("-inf"),
-                                   float("inf"),
-                                   1,
-                                   retAction=True)
+      value, action = self.expectinegamax(opponent,
+                                          probableState,
+                                          self.SEARCH_DEPTH,
+                                          1,
+                                          retAction=True)
       if value > bestVal:
         bestVal, bestAction = value, action
 
@@ -125,33 +126,31 @@ class ApproximateAdversarialAgent(CaptureAgent):
       agentPos = gameState.getAgentState(agent).getPosition()
     return (gameState.isRed(agentPos) != gameState.isOnRedTeam(agent))
 
-  def negamax(self, opponent, state, depth, alpha, beta, sign, retAction=False):
+  def expectinegamax(self, opponent, state, depth, sign, retAction=False):
     """
-    Negamax variation of minimax, with alpha-beta pruning.
+    Negamax variation of expectimax.
     """
     if sign == 1:
       agent = self.index
     else:
       agent = opponent
 
-    actions = state.getLegalActions(agent)
-    actions.remove(Directions.STOP)
-    actions.append(Directions.STOP)
-
     bestAction = None
     if self.stateIsTerminal(agent, state) or depth == 0:
       bestVal = sign * self.evaluateState(state)
     else:
-      bestVal = float("-inf")
+      actions = state.getLegalActions(agent)
+      actions.remove(Directions.STOP)
+      bestVal = float("-inf") if agent == self.index else 0
       for action in actions:
         successor = state.generateSuccessor(agent, action)
-        value = -self.negamax(opponent, successor, depth - 1, -alpha, -beta, -sign)
-        if value > bestVal:
+        value = -self.expectinegamax(opponent, successor, depth - 1, -sign)
+        if agent == self.index and value > bestVal:
           bestVal, bestAction = value, action
-        alpha = max(alpha, value)
-        if alpha >= beta:
-          break
-    if retAction:
+        elif agent == opponent:
+          bestVal += value/len(actions)
+
+    if agent == self.index and retAction:
       return bestVal, bestAction
     else:
       return bestVal
