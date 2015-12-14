@@ -186,7 +186,7 @@ class CautiousAttackAgent(ApproximateAdversarialAgent):
     if self.retreating:
       return  -len(targetFood) \
               -self.distancer.getDistance(myPosition, gameState.getInitialAgentPosition(self.index)) \
-              +self.distancer.getDistance(myPosition, gameState.getAgentState(closestOpponent).getPosition())
+              +self.distancer.getDistance(myPosition, gameState.getAgentState(closestOpponent).getPosition())/2
     else:
       foodDistances = [self.distancer.getDistance(myPosition, food)
                        for food in targetFood]
@@ -194,7 +194,7 @@ class CautiousAttackAgent(ApproximateAdversarialAgent):
       return 2 * self.getScore(gameState) \
              -100 * len(targetFood) \
              -minDistance \
-             +self.distancer.getDistance(myPosition, gameState.getAgentState(closestOpponent).getPosition())
+             +self.distancer.getDistance(myPosition, gameState.getAgentState(closestOpponent).getPosition())/2
 
 
 class OpportunisticAttackAgent(ApproximateAdversarialAgent):
@@ -211,7 +211,7 @@ class OpportunisticAttackAgent(ApproximateAdversarialAgent):
     if not food or gameState.getAgentState(self.index).numCarrying > self.getScore(gameState) > 0:
       return 20 * self.getScore(gameState) \
              - self.distancer.getDistance(myPosition, gameState.getInitialAgentPosition(self.index)) \
-             + self.distancer.getDistance(myPosition, gameState.getAgentState(closestOpponent).getPosition())
+             + self.distancer.getDistance(myPosition, gameState.getAgentState(closestOpponent).getPosition())/2
 
     for f in food:
       d = min(map(lambda o: self.distancer.getDistance(gameState.getAgentState(o).getPosition(), f), self.getOpponents(gameState)))
@@ -222,7 +222,7 @@ class OpportunisticAttackAgent(ApproximateAdversarialAgent):
     return 2 * self.getScore(gameState) \
            -100 * len(food) \
            -self.distancer.getDistance(myPosition, targetFood) \
-           +self.distancer.getDistance(myPosition, gameState.getAgentState(closestOpponent).getPosition())
+           +self.distancer.getDistance(myPosition, gameState.getAgentState(closestOpponent).getPosition())/2
 
 
 class GoalieAgent(ApproximateAdversarialAgent):
