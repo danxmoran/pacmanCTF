@@ -5,7 +5,7 @@ import game
 
 import pdb
 
-SEARCH_DEPTH = 5
+SEARCH_DEPTH = 7
 
 class ApproximateAdversarialAgent(CaptureAgent):
   """
@@ -103,8 +103,11 @@ class ApproximateAdversarialAgent(CaptureAgent):
       positionProbability = gameState.getDistanceProb(trueDistance, noisyDistance)
       updatedBeliefs[p] = positionProbability * self.positionBeliefs[agent][p]
 
-    updatedBeliefs.normalize()
-    self.positionBeliefs[agent] = updatedBeliefs
+    if not updatedBeliefs.totalCount():
+      self.initializeBeliefs(agent)
+    else:
+      updatedBeliefs.normalize()
+      self.positionBeliefs[agent] = updatedBeliefs
 
   def guessPosition(self, agent):
     """
@@ -237,16 +240,15 @@ class HunterDefenseAgent(ApproximateAdversarialAgent):
   """
   def evaluateState(self, gameState):
     myPosition = gameState.getAgentState(self.index).getPosition()
+    if self.agentIsPacman(self.index, gameState):
+        return -1000000
 
     score = 0
     for opponent in ApproximateAdversarialAgent.getOpponents(self, gameState):
-      if abs(myPosition[0] - gameState.getInitialAgentPosition(opponent)[0]) < \
-         abs(myPosition[0] - gameState.getInitialAgentPosition(self.index)[0]):
-        return -1000000
-
       if not self.agentIsPacman(opponent, gameState):
         score += 1000
-
-      score -= self.distancer.getDistance(myPosition, gameState.getAgentState(opponent).getPosition())
+      else:
+        score -= self.distancer.getDistance(
+          myPosition, gameState.getAgentState(opponent).getPosition())
 
     return score
