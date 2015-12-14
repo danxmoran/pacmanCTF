@@ -5,7 +5,7 @@ import game
 
 import pdb
 
-SEARCH_DEPTH = 7
+SEARCH_DEPTH = 5
 
 class ApproximateAdversarialAgent(CaptureAgent):
   """
@@ -46,7 +46,7 @@ class ApproximateAdversarialAgent(CaptureAgent):
         self.elapseTime(opponent, gameState)
         self.observe(opponent, noisyDistances[opponent], gameState)
 
-      self.displayDistributionsOverPositions(self.positionBeliefs.values())
+      #self.displayDistributionsOverPositions(self.positionBeliefs.values())
       probablePosition = self.guessPosition(opponent)
       conf = game.Configuration(probablePosition, Directions.STOP)
       probableState.data.agentStates[opponent] = game.AgentState(
@@ -115,6 +115,16 @@ class ApproximateAdversarialAgent(CaptureAgent):
     """
     return self.positionBeliefs[agent].argMax()
 
+  def agentIsPacman(self, agent, gameState, guessPosition=False):
+    """
+    Check if the given agent is operating as a Pacman in its current position.
+    """
+    if guessPosition:
+      agentPos = self.guessPosition(agent)
+    else:
+      agentPos = gameState.getAgentState(agent).getPosition()
+    return (gameState.isRed(agentPos) != gameState.isOnRedTeam(agent))
+
   def negamax(self, opponent, state, depth, alpha, beta, sign, retAction=False):
     """
     Negamax variation of minimax, with alpha-beta pruning.
@@ -129,7 +139,7 @@ class ApproximateAdversarialAgent(CaptureAgent):
     actions.append(Directions.STOP)
 
     bestAction = None
-    if not (depth and actions):
+    if self.stateIsTerminal(agent, state) or depth == 0:
       bestVal = sign * self.evaluateState(state)
     else:
       bestVal = float("-inf")
@@ -146,12 +156,12 @@ class ApproximateAdversarialAgent(CaptureAgent):
     else:
       return bestVal
 
-  def agentIsPacman(self, agent, gameState, guessPosition=False):
-    if guessPosition:
-      agentPos = self.guessPosition(agent)
-    else:
-      agentPos = gameState.getAgentState(agent).getPosition()
-    return (gameState.isRed(agentPos) != gameState.isOnRedTeam(agent))
+  def stateIsTerminal(self, agent, gameState):
+    """
+    Check if the search tree should stop expanding at the given game state
+    on the given agent's turn.
+    """
+    return len(gameState.getLegalActions(agent)) == 0
 
   def evaluateState(self, gameState):
     """
@@ -230,6 +240,10 @@ class GoalieAgent(ApproximateAdversarialAgent):
   A defense-oriented agent that tries to place itself between its team's
   food and the closest opponent.
   """
+  def stateIsTerminal(self, agent, gameState):
+    return self.agentIsPacman(self.index, gameState) or \
+      ApproximateAdversarialAgent.stateIsTerminal(self, agent, gameState)
+
   def evaluateState(self, gameState):
     myPosition = gameState.getAgentState(self.index).getPosition()
     shieldedFood = self.getFoodYouAreDefending(gameState).asList()
@@ -240,9 +254,11 @@ class GoalieAgent(ApproximateAdversarialAgent):
       opponentDistances = [(f, o, self.distancer.getDistance(f, o))
                            for f in shieldedFood for o in opponentPositions]
       atRiskFood, threateningOpponent = min(opponentDistances, key=lambda t: t[2])[0:2]
-      return 1000 \
+      score = len(shieldedFood) \
              -2 * self.distancer.getDistance(myPosition, atRiskFood) \
-             -self.distancer.getDistance(myPosition, threateningOpponent)
+             -self.distancer.getDistance(myPosition, threateningOpponent) \
+             +3 * self.distancer.getDistance(atRiskFood, threateningOpponent)
+      return score
     else:
       return -min([self.distancer.getDistance(myPosition, o) for o in opponentPositions])
 
@@ -251,6 +267,10 @@ class HunterDefenseAgent(ApproximateAdversarialAgent):
   A defense-oriented agent that actively seeks out an enemy agent in its territory
   and tries to hunt it down
   """
+  def stateIsTerminal(self, agent, gameState):
+    return self.agentIsPacman(self.index, gameState) or \
+      ApproximateAdversarialAgent.stateIsTerminal(self, agent, gameState)
+
   def evaluateState(self, gameState):
     myPosition = gameState.getAgentState(self.index).getPosition()
     if self.agentIsPacman(self.index, gameState):
