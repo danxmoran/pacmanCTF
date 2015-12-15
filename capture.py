@@ -689,6 +689,7 @@ class AgentRules:
             agentState.isPacman = False
             agentState.configuration = agentState.start
             agentState.scaredTimer = 0
+            break
           else:
             score = KILL_POINTS
             if state.isOnRedTeam(agentIndex):
@@ -715,6 +716,7 @@ class AgentRules:
             otherAgentState.isPacman = False
             otherAgentState.configuration = otherAgentState.start
             otherAgentState.scaredTimer = 0
+            break
           else:
             score = KILL_POINTS
             if state.isOnRedTeam(agentIndex):

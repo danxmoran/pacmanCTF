@@ -56,7 +56,7 @@ class ApproximateAdversarialAgent(CaptureAgent):
       probablePosition = self.guessPosition(opponent)
       conf = game.Configuration(probablePosition, Directions.STOP)
       probableState.data.agentStates[opponent] = game.AgentState(
-                      conf, self.agentIsPacman(opponent, gameState))
+        conf, probableState.isRed(probablePosition) != probableState.isOnRedTeam(opponent))
 
     # Run negamax alpha-beta search to pick an optimal move
     bestVal, bestAction = float("-inf"), None
