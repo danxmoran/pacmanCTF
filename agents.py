@@ -4,8 +4,6 @@ import random, time, util
 from game import Directions
 import game
 
-import pdb
-
 class ApproximateAdversarialAgent(CaptureAgent):
   """
   Superclass for agents choosing actions via alpha-beta search, with
