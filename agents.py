@@ -311,13 +311,6 @@ class GoalieAgent(DefensiveAgent):
     opponentPositions = [self.getAgentPosition(opponent, gameState)
                          for opponent in self.getOpponents(gameState)]
 
-    score = 0
-    pacmanStates = [self.agentIsPacman(opponent, gameState)
-                    for opponent in self.getOpponents(gameState)]
-    for isPacman in pacmanStates:
-      if not isPacman:
-        score += 100
-
     if len(shieldedFood):
       opponentDistances = util.Counter()
       opponentTotalDistances = util.Counter()
