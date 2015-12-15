@@ -1,8 +1,9 @@
 # pacmanCTF
 Capture the flag Pacman game - Final project for CS5100 at Northeastern University
 
-The focus of this project was to design agents that could intelligently play the CTF game constructed by the CS188 team at Berkeley.
-To run the game with the default agents provided by the CS188 team, run:
+The focus of this project was to design agents that could intelligently play the
+CTF game constructed by the [CS188 team at UC Berkeley](http://ai.berkeley.edu).
+To run the game with the default agents provided by CS188, run:
 ```
 $ python capture.py
 ```
